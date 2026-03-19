@@ -28,12 +28,26 @@ async function fetchEthPrice(): Promise<number | null> {
   }
 }
 
+const TESTNET_ETH_PRICE = 3500; // simulated price for demo display
+
 export class EthereumAdapter implements ChainAdapter {
   readonly chain = 'ethereum' as const;
   private readonly provider: JsonRpcProvider;
+  private readonly isTestnet: boolean;
 
   constructor(rpcUrl: string) {
     this.provider = new JsonRpcProvider(rpcUrl);
+    this.isTestnet =
+      rpcUrl.includes('sepolia') ||
+      rpcUrl.includes('goerli') ||
+      rpcUrl.includes('holesky');
+  }
+
+  private async getEthPrice(): Promise<number | null> {
+    if (this.isTestnet) {
+      return TESTNET_ETH_PRICE;
+    }
+    return fetchEthPrice();
   }
 
   async getWalletSnapshot(address: string): Promise<WalletSnapshot> {
@@ -56,7 +70,7 @@ export class EthereumAdapter implements ChainAdapter {
 
     const ethWei = await this.provider.getBalance(address);
     const ethAmount = Number(formatEther(ethWei));
-    const ethPrice = await fetchEthPrice();
+    const ethPrice = await this.getEthPrice();
 
     balances.push({
       symbol: 'ETH',
@@ -65,25 +79,29 @@ export class EthereumAdapter implements ChainAdapter {
       valueUsd: ethPrice !== null ? ethAmount * ethPrice : null,
     });
 
-    await Promise.allSettled(
-      TOP_TOKENS.map(async (token) => {
-        try {
-          const contract = new Contract(token.address, ERC20_ABI, this.provider);
-          const raw = (await contract.getFunction('balanceOf')(address)) as bigint;
-          const amount = Number(formatUnits(raw, token.decimals));
-          if (amount > 0) {
-            balances.push({
-              symbol: token.symbol,
-              amount,
-              decimals: token.decimals,
-              valueUsd: token.isStable ? amount : null, // stablecoins ~ $1
-            });
+    if (this.isTestnet) {
+      logger.debug('[Ethereum] Skipping ERC-20 checks on testnet (different contract addresses)');
+    } else {
+      await Promise.allSettled(
+        TOP_TOKENS.map(async (token) => {
+          try {
+            const contract = new Contract(token.address, ERC20_ABI, this.provider);
+            const raw = (await contract.getFunction('balanceOf')(address)) as bigint;
+            const amount = Number(formatUnits(raw, token.decimals));
+            if (amount > 0) {
+              balances.push({
+                symbol: token.symbol,
+                amount,
+                decimals: token.decimals,
+                valueUsd: token.isStable ? amount : null, // stablecoins ~ $1
+              });
+            }
+          } catch {
+            // Token not held or call failed — skip silently
           }
-        } catch {
-          // Token not held or call failed — skip silently
-        }
-      }),
-    );
+        }),
+      );
+    }
 
     return balances;
   }

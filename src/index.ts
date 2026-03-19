@@ -245,6 +245,11 @@ function setupGracefulShutdown(mcpClient: McpClient): void {
 
 async function main() {
   logger.info('🏦 VaultRoom starting...');
+  logger.info(`🌐 Network: ${env.NETWORK_MODE.toUpperCase()}`);
+  logger.info(`   Cardano: ${env.BLOCKFROST_NETWORK} | Ethereum: ${env.ETH_RPC_URL.includes('sepolia') ? 'Sepolia' : env.ETH_RPC_URL}`);
+  if (env.NETWORK_MODE === 'testnet') {
+    logger.info('   ⚠️  Testnet mode — prices are simulated, ERC-20 checks skipped');
+  }
 
   // Connect to remote Notion MCP server via OAuth
   const mcp = await McpClient.connect(env.NOTION_ACCESS_TOKEN, env.NOTION_MCP_URL);

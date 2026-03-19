@@ -63,14 +63,17 @@ function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
 // ─── Banner ───────────────────────────────────────────────────────────────────
 
-function printBanner() {
+function printBanner(networkMode: string) {
+  const networkLabel = networkMode === 'testnet'
+    ? 'Network: TESTNET (Cardano Preprod + Ethereum Sepolia)'
+    : 'Network: MAINNET (Cardano + Ethereum)';
   p();
   p(C.bold('  ╔═══════════════════════════════════════════════════════════╗'));
   p(C.bold('  ║                                                           ║'));
   p(C.bold('  ║   🏦  V A U L T R O O M                                  ║'));
   p(C.bold('  ║                                                           ║'));
   p(C.bold('  ║   DeFi Risk Agent — Notion MCP Control Plane              ║'));
-  p(C.bold('  ║   Built for Notion MCP Challenge 2026                     ║'));
+  p(C.bold(`  ║   ${networkLabel.padEnd(55)}║`));
   p(C.bold('  ║                                                           ║'));
   p(C.bold('  ║   MCP Server: https://mcp.notion.com (remote, OAuth)      ║'));
   p(C.bold('  ║                                                           ║'));
@@ -123,13 +126,15 @@ const DEMO_CONFIG: MonitorConfig = {
 // ─── Main demo ────────────────────────────────────────────────────────────────
 
 async function runDemo() {
-  printBanner();
+  const networkMode = process.env['NETWORK_MODE'] ?? 'testnet';
+  printBanner(networkMode);
 
   // Validate required env vars
   const accessToken = process.env['NOTION_ACCESS_TOKEN'] ?? '';
   const mcpUrl = process.env['NOTION_MCP_URL'] ?? 'https://mcp.notion.com/mcp';
   const blockfrostKey = process.env['BLOCKFROST_API_KEY'] ?? '';
-  const ethRpc = process.env['ETH_RPC_URL'] ?? 'https://eth.llamarpc.com';
+  const defaultEthRpc = networkMode === 'testnet' ? 'https://rpc.sepolia.org' : 'https://eth.llamarpc.com';
+  const ethRpc = process.env['ETH_RPC_URL'] ?? defaultEthRpc;
   const geminiKey = process.env['GEMINI_API_KEY'] ?? '';
 
   if (!accessToken) {

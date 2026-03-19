@@ -25,14 +25,25 @@ async function fetchAdaPrice(): Promise<number | null> {
   }
 }
 
+const TESTNET_ADA_PRICE = 0.65; // simulated price for demo display
+
 export class CardanoAdapter implements ChainAdapter {
   readonly chain = 'cardano' as const;
   private readonly api: BlockFrostAPI;
+  private readonly isTestnet: boolean;
   private readonly txCache = new Map<string, ChainTx>();
 
-  constructor(apiKey: string, _network: string) {
+  constructor(apiKey: string, network: string) {
     // Network is inferred from the projectId prefix in Blockfrost v5
     this.api = new BlockFrostAPI({ projectId: apiKey });
+    this.isTestnet = network !== 'mainnet';
+  }
+
+  private async getAdaPrice(): Promise<number | null> {
+    if (this.isTestnet) {
+      return TESTNET_ADA_PRICE;
+    }
+    return fetchAdaPrice();
   }
 
   async getWalletSnapshot(address: string): Promise<WalletSnapshot> {
@@ -40,7 +51,7 @@ export class CardanoAdapter implements ChainAdapter {
       label: `Blockfrost addresses(${address.slice(0, 12)}...)`,
     });
 
-    const adaPrice = await fetchAdaPrice();
+    const adaPrice = await this.getAdaPrice();
     const balances = this.parseBalances(addrInfo.amount, adaPrice);
     const position = this.parseProtocolPosition(addrInfo.amount);
 

@@ -71,3 +71,18 @@ export const DEMO_STATS = {
   avgHealth: (1.42 + 1.15 + 0.98) / 3,
   activeAlerts: 2,
 };
+
+// Testnet wallet addresses for demo runs
+// Replace with your own wallets after funding from testnet faucets
+export const DEMO_WALLETS = {
+  testnet: {
+    // Cardano Preprod: get tADA at https://docs.cardano.org/cardano-testnets/tools/faucet/
+    cardano: 'addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3jcu5d8ps7zex2k2xt3uqxgjqnnj83ws8lhrn648jjxtwq2ytjqp',
+    // Ethereum Sepolia: get test ETH at https://sepoliafaucet.com/
+    ethereum: '0x0000000000000000000000000000000000000000',
+  },
+  mainnet: {
+    cardano: '',
+    ethereum: '',
+  },
+};

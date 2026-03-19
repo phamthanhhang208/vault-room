@@ -9,12 +9,15 @@ const envSchema = z.object({
   NOTION_ACCESS_TOKEN: z.string().min(1, 'Missing NOTION_ACCESS_TOKEN — run pnpm run setup:auth to authenticate'),
   NOTION_REFRESH_TOKEN: z.string().optional(),
 
+  // Network mode
+  NETWORK_MODE: z.enum(['mainnet', 'testnet']).default('testnet'),
+
   // Blockchain — Cardano
   BLOCKFROST_API_KEY: z.string().min(1, 'Missing BLOCKFROST_API_KEY — get one at https://blockfrost.io'),
-  BLOCKFROST_NETWORK: z.enum(['mainnet', 'preprod', 'preview']).default('mainnet'),
+  BLOCKFROST_NETWORK: z.enum(['mainnet', 'preprod', 'preview', 'sanchonet']).default('preprod'),
 
   // Blockchain — Ethereum
-  ETH_RPC_URL: z.string().url().default('https://eth.llamarpc.com'),
+  ETH_RPC_URL: z.string().default(''),
 
   // AI
   GEMINI_API_KEY: z.string().min(1, 'Missing GEMINI_API_KEY — get one at https://aistudio.google.com'),
@@ -44,7 +47,16 @@ function parseEnv() {
     const errors = result.error.issues.map((i) => `  • ${i.message}`).join('\n');
     throw new Error(`Configuration errors:\n${errors}`);
   }
-  return result.data;
+  const data = result.data;
+
+  // Derive network defaults from NETWORK_MODE if not explicitly set
+  if (!data.ETH_RPC_URL) {
+    data.ETH_RPC_URL = data.NETWORK_MODE === 'testnet'
+      ? 'https://rpc.sepolia.org'
+      : 'https://eth.llamarpc.com';
+  }
+
+  return data;
 }
 
 export const env = parseEnv();
