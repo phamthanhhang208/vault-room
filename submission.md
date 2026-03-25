@@ -70,28 +70,7 @@ The agent reads the Config and Watchlist databases every monitoring cycle. If a 
 
 Risk events, positions, and alerts are written to structured databases. But the key showcase is the escalation flow:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Agent as 🏦 Agent
-    participant MCP as ☁️ Notion MCP
-    participant Notion as 📓 Notion
-    participant Human as 👤 Human
-
-    Agent->>MCP: notion-create-pages<br/>(Risk Dashboard, status: "Escalated")
-    MCP->>Notion: Create escalation page with AI analysis
-
-    Notion-->>Human: 🔔 Human reviews critical risk
-    Human->>Notion: Changes status to "Approved"
-
-    Note over Agent: Next poll cycle
-    Agent->>MCP: notion-search (Risk Dashboard)
-    MCP-->>Agent: Status changed to "Approved"
-
-    Agent->>Agent: Execute recommended action
-    Agent->>MCP: notion-update-page (status: "Resolved")
-    Agent->>MCP: notion-create-comment ("✅ Acknowledged")
-```
+![Escalation Flow](https://raw.githubusercontent.com/phamthanhhang208/vault-room/main/docs/images/escalation-flow.png)
 
 1. Risk engine detects a critical signal (e.g., health factor drops below 1.0)
 2. Agent creates a Risk Dashboard entry via `notion-create-pages` with status set to "Escalated"
@@ -117,174 +96,17 @@ One MCP call, one Markdown string, and Notion renders a professional portfolio b
 
 Each monitoring cycle follows a four-phase pattern — reading config from Notion, fetching on-chain data, detecting risks, and writing results back:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Cron as ⏰ Scheduler
-    participant Agent as 🏦 Agent
-    participant MCP as ☁️ Notion MCP
-    participant Chain as ⛓️ Blockchain
-    participant AI as 🤖 Gemini AI
-
-    Cron->>Agent: Trigger monitor cycle
-
-    rect rgb(30, 40, 60)
-        Note over Agent,MCP: Phase 1 — Read Config from Notion
-        Agent->>MCP: notion-search (Config DB)
-        MCP-->>Agent: Wallets, thresholds, chains
-        Agent->>MCP: notion-search (Watchlist DB)
-        MCP-->>Agent: Protocols to monitor
-    end
-
-    rect rgb(40, 30, 50)
-        Note over Agent,Chain: Phase 2 — Fetch On-Chain Data
-        loop For each wallet
-            Agent->>Chain: getWalletSnapshot()
-            Chain-->>Agent: Balances, tokens, txs
-        end
-    end
-
-    rect rgb(50, 30, 30)
-        Note over Agent,AI: Phase 3 — Risk Detection + AI
-        Agent->>Agent: Rule-based signal checks
-        opt Critical signals
-            Agent->>AI: Analyze risk
-            AI-->>Agent: Severity + recommendations
-        end
-    end
-
-    rect rgb(30, 50, 40)
-        Note over Agent,MCP: Phase 4 — Write to Notion
-        Agent->>MCP: notion-create-pages (Risk Events)
-        Agent->>MCP: notion-update-page (Positions)
-        Agent->>MCP: notion-create-pages (Alert Log)
-    end
-```
+![Data Flow](https://raw.githubusercontent.com/phamthanhhang208/vault-room/main/docs/images/data-flow.png)
 
 ### Architecture
 
-```mermaid
-graph TB
-    subgraph USER["👤 Human Operator"]
-        NOTION_UI["Notion Workspace<br/>(Browser / App)"]
-    end
-
-    subgraph NOTION_MCP["☁️ Notion MCP Server<br/><i>mcp.notion.com</i>"]
-        MCP_API["MCP Protocol<br/>Streamable HTTP + OAuth 2.0 PKCE"]
-    end
-
-    subgraph AGENT["🏦 VaultRoom Agent<br/><i>Node.js + TypeScript</i>"]
-        ORCH["Orchestrator<br/><i>node-cron scheduler</i>"]
-        MCP_CLIENT["MCP Client<br/><i>@modelcontextprotocol/sdk</i>"]
-
-        subgraph NOTION_LAYER["Notion Layer"]
-            READER["NotionReader<br/><i>Config, Watchlist, Positions</i>"]
-            WRITER["NotionWriter<br/><i>Alerts, Positions, Risk Events</i>"]
-            DIGEST["DigestBuilder<br/><i>Daily AI-written reports</i>"]
-        end
-
-        subgraph RISK["Risk Engine"]
-            SIGNALS["Signal Detector<br/><i>Rule-based checks</i>"]
-            AI["Gemini 2.5 Pro<br/><i>AI risk analysis</i>"]
-        end
-
-        subgraph CHAINS["Chain Adapters"]
-            CARDANO["CardanoAdapter<br/><i>Blockfrost API</i>"]
-            ETHEREUM["EthereumAdapter<br/><i>ethers.js + RPC</i>"]
-        end
-    end
-
-    subgraph EXTERNAL["🌐 External Services"]
-        BLOCKFROST["Blockfrost API<br/><i>Cardano blockchain data</i>"]
-        ETH_RPC["Ethereum RPC<br/><i>Sepolia / Mainnet</i>"]
-        GEMINI["Google Gemini API<br/><i>AI analysis + digests</i>"]
-    end
-
-    USER -.->|"reads / edits<br/>config & approvals"| NOTION_UI
-    NOTION_UI <-->|"Notion internal"| MCP_API
-    MCP_CLIENT <-->|"MCP tools<br/>(14 available)"| MCP_API
-
-    ORCH --> MCP_CLIENT
-    ORCH --> READER
-    ORCH --> WRITER
-    ORCH --> DIGEST
-    ORCH --> SIGNALS
-    ORCH --> CARDANO
-    ORCH --> ETHEREUM
-
-    READER --> MCP_CLIENT
-    WRITER --> MCP_CLIENT
-    DIGEST --> MCP_CLIENT
-
-    SIGNALS --> AI
-    AI --> GEMINI
-
-    CARDANO --> BLOCKFROST
-    ETHEREUM --> ETH_RPC
-```
+![Architecture](https://raw.githubusercontent.com/phamthanhhang208/vault-room/main/docs/images/architecture.png)
 
 ### Notion Database Schema
 
 VaultRoom manages 6 interconnected databases, all created programmatically via MCP using SQL DDL syntax:
 
-```mermaid
-erDiagram
-    CONFIG {
-        string Name PK
-        enum Chain "Cardano | Ethereum"
-        string Wallet_Address
-        float Health_Threshold
-        float TVL_Drop_Pct
-        int Poll_Minutes
-        bool Active
-    }
-
-    WATCHLIST {
-        string Protocol PK
-        enum Chain "Cardano | Ethereum"
-        string Contract
-        array Watch_Type "tvl, whale, health, yield"
-        bool Active
-    }
-
-    POSITIONS {
-        string Position PK
-        enum Chain "Cardano | Ethereum"
-        string Protocol
-        string Wallet
-        float Value_USD
-        float Health_Factor
-        enum Risk_Level "Safe | Warning | Danger"
-        date Last_Updated
-    }
-
-    RISK_DASHBOARD {
-        string Event PK
-        enum Chain "Cardano | Ethereum"
-        string Protocol
-        enum Severity "Low | Medium | High | Critical"
-        date Detected_At
-        string AI_Analysis
-        string Recommended_Action
-        enum Status "New | Acknowledged | Escalated | Approved | Resolved"
-    }
-
-    ALERT_LOG {
-        string Alert PK
-        enum Chain "Cardano | Ethereum"
-        enum Severity "Low | Medium | High | Critical"
-        date Timestamp
-        string Details
-    }
-
-    DIGESTS {
-        string Title PK
-        string Content "AI-generated markdown"
-    }
-
-    CONFIG ||--o{ POSITIONS : "monitors"
-    RISK_DASHBOARD ||--o{ ALERT_LOG : "generates"
-```
+![Er Diagram](https://raw.githubusercontent.com/phamthanhhang208/vault-room/main/docs/images/er-diagram.png)
 
 ### Why DeFi + Notion MCP?
 
