@@ -2,6 +2,8 @@
 
 ## What I Built
 
+<!-- TODO: Add cover image — screenshot of Notion workspace with all 6 DBs visible -->
+
 DeFi operators managing lending positions across multiple blockchains face a familiar problem: alerts scattered across Discord bots, risk tracking in spreadsheets, and critical decisions made via Telegram messages. There's no single source of truth, no structured escalation workflow, and no clean way for a human to stay in the loop when an AI agent flags something dangerous.
 
 **VaultRoom** is a multi-chain DeFi risk monitoring agent that turns Notion into a **bidirectional control plane**. The agent monitors on-chain positions across Cardano and Ethereum, detects anomalies using rule-based checks and Gemini 2.5 Pro analysis, and manages a living Notion workspace — where human operators set thresholds, approve escalations, and receive AI-written daily digests.
@@ -58,22 +60,15 @@ This is where I went deep. VaultRoom connects to Notion's **remote hosted MCP se
 
 ### The Bidirectional Loop
 
-This is what makes VaultRoom more than a write-only bot. Data flows **both ways** through MCP:
+Most MCP integrations I've seen are one-directional — an agent writes to Notion. VaultRoom goes both ways:
 
-**Human → Agent** (operator configures via Notion UI):
-- Edit the ⚙️ Config database to add wallets, set health factor thresholds, toggle monitoring on/off
-- Add protocols to the 👁️ Watchlist with specific risk types to track
-- Change an escalated event's status from "Escalated" → "Approved" to authorize agent action
+**Human → Agent** (Notion → MCP → VaultRoom):
 
-**Agent → Human** (VaultRoom writes via MCP):
-- Creates pages in 🚨 Risk Dashboard with AI-analyzed severity, plain-English analysis, and recommended actions
-- Updates 📊 Positions with current on-chain values and health factors
-- Logs every alert in 📋 Alert Log with timestamps
-- Publishes 📝 Daily Digests as rich Notion pages with tables, callouts, and toggle sections
+The agent reads the Config and Watchlist databases every monitoring cycle. If a human changes a health factor threshold from 1.2 to 1.5 in the Notion UI, the agent picks it up on the next cycle and adjusts its detection sensitivity. No redeployment, no config files — the human edits Notion, the agent adapts.
 
-### The Escalation Flow (the MCP showcase)
+**Agent → Human** (VaultRoom → MCP → Notion):
 
-This is the most interesting part — a full human-in-the-loop approval cycle powered entirely by MCP:
+Risk events, positions, and alerts are written to structured databases. But the key showcase is the escalation flow:
 
 ```mermaid
 sequenceDiagram
@@ -84,10 +79,10 @@ sequenceDiagram
     participant Human as 👤 Human
 
     Agent->>MCP: notion-create-pages<br/>(Risk Dashboard, status: "Escalated")
-    MCP->>Notion: Create escalation page
+    MCP->>Notion: Create escalation page with AI analysis
 
-    Notion-->>Human: 🔔 Notification (critical risk)
-    Human->>Notion: Review → set status: "Approved"
+    Notion-->>Human: 🔔 Human reviews critical risk
+    Human->>Notion: Changes status to "Approved"
 
     Note over Agent: Next poll cycle
     Agent->>MCP: notion-search (Risk Dashboard)
@@ -95,17 +90,76 @@ sequenceDiagram
 
     Agent->>Agent: Execute recommended action
     Agent->>MCP: notion-update-page (status: "Resolved")
-    Agent->>MCP: notion-create-comment ("Action completed")
+    Agent->>MCP: notion-create-comment ("✅ Acknowledged")
 ```
 
-1. Agent detects a critical risk signal (e.g., health factor at 1.08 on a lending position)
-2. `notion-create-pages` → creates a risk event with status "Escalated" and AI analysis
-3. The agent polls with `notion-search` every cycle, checking for status changes
-4. A human reviews the risk in Notion and changes status to "Approved"
-5. Agent detects the approval → `notion-update-page` to mark "Resolved"
-6. `notion-create-comment` → agent leaves a timestamped acknowledgment in the Notion discussion thread
+1. Risk engine detects a critical signal (e.g., health factor drops below 1.0)
+2. Agent creates a Risk Dashboard entry via `notion-create-pages` with status set to "Escalated"
+3. Agent polls the dashboard via `notion-search` every cycle, waiting for status change
+4. Human reviews the AI analysis in Notion and changes status to "Approved"
+5. Agent detects the change, updates status to "Resolved" via `notion-update-page`
+6. Agent leaves a comment on the page via `notion-create-comment`: *"✅ VaultRoom agent acknowledged approval. Escalation resolved."*
 
-No webhooks, no external notification system — just an agent and a human coordinating through Notion via MCP.
+That last step — the agent commenting on a Notion page — is what makes this feel like a real conversation between the AI and the human, all inside Notion.
+
+### Notion-Flavored Markdown for Rich Pages
+
+The daily digest is the visual payoff. Instead of constructing JSON block arrays, the agent writes Notion-flavored Markdown through MCP. The server converts it to rich Notion blocks automatically:
+
+- `>` blockquotes become **callouts** with portfolio snapshots
+- Standard Markdown tables become **Notion tables** with position data
+- `<details>` tags become **toggles** containing the full Gemini analysis
+- Numbered lists become recommendation items
+
+One MCP call, one Markdown string, and Notion renders a professional portfolio briefing with callouts, tables, and expandable sections. This is significantly cleaner than building block trees through the REST API.
+
+### Monitor Cycle Data Flow
+
+Each monitoring cycle follows a four-phase pattern — reading config from Notion, fetching on-chain data, detecting risks, and writing results back:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Cron as ⏰ Scheduler
+    participant Agent as 🏦 Agent
+    participant MCP as ☁️ Notion MCP
+    participant Chain as ⛓️ Blockchain
+    participant AI as 🤖 Gemini AI
+
+    Cron->>Agent: Trigger monitor cycle
+
+    rect rgb(30, 40, 60)
+        Note over Agent,MCP: Phase 1 — Read Config from Notion
+        Agent->>MCP: notion-search (Config DB)
+        MCP-->>Agent: Wallets, thresholds, chains
+        Agent->>MCP: notion-search (Watchlist DB)
+        MCP-->>Agent: Protocols to monitor
+    end
+
+    rect rgb(40, 30, 50)
+        Note over Agent,Chain: Phase 2 — Fetch On-Chain Data
+        loop For each wallet
+            Agent->>Chain: getWalletSnapshot()
+            Chain-->>Agent: Balances, tokens, txs
+        end
+    end
+
+    rect rgb(50, 30, 30)
+        Note over Agent,AI: Phase 3 — Risk Detection + AI
+        Agent->>Agent: Rule-based signal checks
+        opt Critical signals
+            Agent->>AI: Analyze risk
+            AI-->>Agent: Severity + recommendations
+        end
+    end
+
+    rect rgb(30, 50, 40)
+        Note over Agent,MCP: Phase 4 — Write to Notion
+        Agent->>MCP: notion-create-pages (Risk Events)
+        Agent->>MCP: notion-update-page (Positions)
+        Agent->>MCP: notion-create-pages (Alert Log)
+    end
+```
 
 ### Architecture
 
@@ -169,58 +223,9 @@ graph TB
     ETHEREUM --> ETH_RPC
 ```
 
-### Monitor Cycle Data Flow
-
-Each monitoring cycle follows this pattern — reading config from Notion, fetching on-chain data, detecting risks, and writing results back:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Cron as ⏰ Scheduler
-    participant Agent as 🏦 Agent
-    participant MCP as ☁️ Notion MCP
-    participant Notion as 📓 Notion
-    participant Chain as ⛓️ Blockchain
-    participant AI as 🤖 Gemini AI
-
-    Cron->>Agent: Trigger monitor cycle
-
-    rect rgb(30, 40, 60)
-        Note over Agent,Notion: Phase 1 — Read Config from Notion
-        Agent->>MCP: notion-search (Config DB)
-        MCP-->>Agent: Wallets, thresholds, chains
-        Agent->>MCP: notion-search (Watchlist DB)
-        MCP-->>Agent: Protocols to monitor
-    end
-
-    rect rgb(40, 30, 50)
-        Note over Agent,Chain: Phase 2 — Fetch On-Chain Data
-        loop For each wallet
-            Agent->>Chain: getWalletSnapshot()
-            Chain-->>Agent: Balances, tokens, txs
-        end
-    end
-
-    rect rgb(50, 30, 30)
-        Note over Agent,AI: Phase 3 — Risk Detection + AI
-        Agent->>Agent: Rule-based signal detection
-        opt Critical signals
-            Agent->>AI: Analyze risk signals
-            AI-->>Agent: Severity + recommendations
-        end
-    end
-
-    rect rgb(30, 50, 40)
-        Note over Agent,Notion: Phase 4 — Write Results to Notion
-        Agent->>MCP: notion-create-pages (Risk Events)
-        Agent->>MCP: notion-update-page (Positions)
-        Agent->>MCP: notion-create-pages (Alert Log)
-    end
-```
-
 ### Notion Database Schema
 
-VaultRoom manages 6 interconnected databases in Notion, all created programmatically via MCP:
+VaultRoom manages 6 interconnected databases, all created programmatically via MCP using SQL DDL syntax:
 
 ```mermaid
 erDiagram
@@ -281,21 +286,27 @@ erDiagram
     RISK_DASHBOARD ||--o{ ALERT_LOG : "generates"
 ```
 
-### Lessons Learned: MCP Quirks
+### Why DeFi + Notion MCP?
+
+I build DeFi products professionally — lending protocols and yield platforms on Cardano. The risk scenarios in VaultRoom aren't hypothetical. Health factor monitoring, whale movement detection, and liquidation risk assessment are problems I deal with daily.
+
+No other submission in this challenge touches DeFi. VaultRoom brings genuine domain expertise to a real problem, and Notion MCP turns out to be a surprisingly natural fit for operational risk management: structured databases for tracking, rich pages for reporting, comments for human-agent communication, and the whole thing accessible from a phone without building a custom UI.
+
+### Lessons Learned: Hosted MCP Quirks
 
 Building a custom MCP client against the hosted Notion MCP server taught me things the docs don't mention:
 
-1. **The hosted MCP has its own OAuth** — it uses PKCE with dynamic client registration. You can't just use a Notion REST API token. I had to implement the full RFC 9470 → RFC 8414 discovery flow, register a client dynamically, and handle token refresh.
+1. **The hosted MCP has its own OAuth** — You can't use a Notion REST API token. The MCP server uses PKCE with dynamic client registration. I implemented the full RFC 9470 → RFC 8414 discovery flow.
 
-2. **SQL DDL for database creation** — The hosted MCP uses `CREATE TABLE` syntax with custom types (`TITLE`, `RICH_TEXT`, `SELECT('opt1', 'opt2')`, `MULTI_SELECT`, `CHECKBOX`). Not the JSON schema from the REST API.
+2. **SQL DDL for database creation** — `CREATE TABLE` syntax with custom types: `TITLE`, `RICH_TEXT`, `SELECT('opt1', 'opt2')`, `MULTI_SELECT`, `CHECKBOX`. Not the JSON schema from the REST API.
 
-3. **Property value formats are SQLite-flavored** — Checkboxes are `"__YES__"` / `"__NO__"` (not booleans). Dates need expanded keys like `"date:Field Name:start"`. Multi-selects are JSON array strings like `'["tvl", "yield"]'`.
+3. **Property values are SQLite-flavored** — Checkboxes are `"__YES__"` / `"__NO__"` (not booleans). Dates need expanded keys like `"date:Field Name:start"`. Multi-selects are JSON array strings.
 
 4. **Pages in databases use `data_source_id`** — When creating rows, you reference the `collection://` ID, not the database page ID.
 
-5. **Page content is Notion-flavored Markdown** — Blockquotes become callouts, `<details>` become toggles, and tables render as rich Notion blocks. This made the daily digest pages look great without any block API calls.
+5. **Notion-flavored Markdown just works** — Blockquotes → callouts, tables → rich Notion tables, `<details>` → toggles. One string, one MCP call, beautiful output.
 
-## Tech Stack
+### Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -310,5 +321,7 @@ Building a custom MCP client against the hosted Notion MCP server taught me thin
 | Logging | `winston` |
 
 ---
+
+<!-- Thanks for reading! If you work in DeFi or have questions about the MCP integration, drop a comment — I'd love to chat. -->
 
 *Built solo for the Notion MCP Challenge · March 2026*
