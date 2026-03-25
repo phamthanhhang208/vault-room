@@ -1,99 +1,138 @@
 # VaultRoom — Demo Video Script (~2 min)
 
-## Recording Setup
-- **Terminal**: Run `pnpm run demo` (the output is the star)
-- **Browser**: Notion workspace open in a second window/tab
-- **Screen recorder**: OBS, QuickTime, or Loom
-- **Layout**: Split screen — terminal left, Notion right (or switch between them)
-- **Font size**: Bump terminal to 16-18pt so it's readable
+## Before Recording
+1. Refresh MCP token: `cd ~/Projects/vault-room && npx tsx scripts/mcp-auth.ts`
+2. Open Notion to VaultRoom workspace: https://notion.so/32e8bb9ec5168176a899fe5d7b0d4590
+3. Open terminal, `cd ~/Projects/vault-room`, font size 18pt
+4. Screen recorder ready (QuickTime Cmd+Shift+5 or OBS)
+5. Layout: terminal full screen. You'll Cmd+Tab to Notion when needed.
 
 ---
 
-## Script
+## SCENE 1 — Intro + Start [0:00 - 0:10]
 
-### [0:00 - 0:10] Intro
+**On screen:** Terminal, cursor ready
 
-**Show:** Terminal with demo already running, banner visible
+**Type and run:**
+```
+pnpm run demo
+```
 
-**Caption:**
-> "VaultRoom — DeFi risk agent powered by Notion MCP. Every Notion interaction goes through MCP, zero REST API."
+**Say:**
+> "This is VaultRoom — a DeFi risk agent that uses Notion as its control plane through MCP."
 
----
-
-### [0:10 - 0:30] Live On-Chain Data
-
-**Show:** Terminal fetching Blockfrost + Ethereum data
-
-**Caption:**
-> "The agent fetches real on-chain data from Cardano Preprod and Ethereum Sepolia — wallet balances, tokens, transactions."
-
-**Highlight:** The wallet balances and ADA/token amounts.
+*Wait for banner + MCP connection + tool list to appear.*
 
 ---
 
-### [0:30 - 0:50] Positions & Risk Detection
+## SCENE 2 — On-Chain Data [0:10 - 0:25]
 
-**Show:** Terminal positions table with health factors, then risk signals
+**On screen:** Terminal, Steps 2-3 scrolling (config read + on-chain fetch)
 
-**Caption:**
-> "DeFi positions are loaded and the risk engine runs. Rule-based checks catch health factor drops, whale movements, balance anomalies. Here — health factor 0.98, below 1.0. Liquidation risk."
+**Say:**
+> "The agent reads wallet config from Notion, then fetches live on-chain data — Cardano via Blockfrost, Ethereum via ethers. Real testnet balances."
 
-**Highlight:** The red critical alert.
-
----
-
-### [0:50 - 1:10] AI Analysis + Write to Notion
-
-**Show:** Terminal showing Gemini output, then switch to Notion 🚨 Risk Dashboard
-
-**Caption:**
-> "Gemini 2.5 Pro analyzes the critical signal. The agent writes the risk event to Notion via notion-create-pages — every write is an MCP call."
-
-**Action:** Switch to Notion, show the Risk Dashboard entry with AI analysis and "Escalated" status.
+*Let the wallet balances and token amounts scroll by.*
 
 ---
 
-### [1:10 - 1:40] Human Approval ⭐ (the money shot)
+## SCENE 3 — Positions + Risk [0:25 - 0:45]
 
-**Show:** Split screen — terminal polling left, Notion right
+**On screen:** Terminal, Steps 4-5 (positions table + risk signals)
 
-**Caption:**
-> "The agent polls Notion for human approval. Watch — I'll change the status to 'Approved'..."
+**Say:**
+> "It loads DeFi positions and runs the risk engine. Here — health factor 0.98. That's below 1.0. Liquidation is imminent. The engine flags it as critical."
 
-**Action:**
-1. In Notion, click Status → change "Escalated" to "Approved"
-2. Terminal detects it, resolves the event, leaves a comment
-
-**Caption:**
-> "Detected. Resolved. Comment left. Human and AI coordinating through Notion."
+*Point out or pause on the red critical alert line.*
 
 ---
 
-### [1:40 - 1:55] Daily Digest
+## SCENE 4 — AI Analysis + Notion [0:45 - 1:05]
 
-**Show:** Terminal generating digest, then Notion digest page
+**On screen:** Terminal, Step 6 (Gemini analysis + MCP writes)
 
-**Caption:**
-> "Daily digest — Gemini writes the briefing, VaultRoom publishes it as a rich Notion page. Tables, callouts, toggles — one Markdown string through MCP."
+**Say:**
+> "Gemini analyzes the signal and writes a plain-English risk assessment. The agent creates the event in Notion's Risk Dashboard — through MCP, not the REST API."
 
-**Action:** Show the digest page in Notion, scroll through tables.
+**Then Cmd+Tab to Notion.**
+
+**On screen:** Notion — 🚨 Risk Dashboard database
+
+**Say:**
+> "Here it is in Notion. Critical severity, AI analysis, recommended action. Status is 'Escalated' — waiting for human approval."
+
+*Click into the risk event to show the AI analysis text and the "Escalated" status.*
+
+*Cmd+Tab back to terminal.*
 
 ---
 
-### [1:55 - 2:00] Close
+## SCENE 5 — Human Approval [1:05 - 1:35] ⭐
 
-**Show:** Terminal summary with MCP call counts
+**On screen:** Terminal showing "Polling for approval..." with the timer
 
-**Caption:**
-> "7 MCP tools. Zero SDK. Notion is the control plane."
+**Say:**
+> "Now the agent polls Notion every 5 seconds, waiting for a human to approve. This is the bidirectional part."
+
+**Cmd+Tab to Notion.**
+
+**Say:**
+> "I'll approve it now."
+
+**On screen:** Click the Status dropdown on the escalated event → change "Escalated" to "Approved"
+
+**Cmd+Tab back to terminal.**
+
+**On screen:** Terminal shows "✅ Human approved" + agent resolves + leaves comment
+
+**Say:**
+> "It picked it up. Resolved the event. Left a comment in Notion. Human and AI, coordinating through Notion."
 
 ---
 
-## Tips for Recording
+## SCENE 6 — Digest + Close [1:35 - 1:55]
 
-1. **Pre-run the demo once** to warm up MCP token and catch errors
-2. **Refresh MCP token** right before: the token refresh script or `pnpm run setup:auth`
-3. **Have Notion open** to the VaultRoom workspace already
-4. **For the approval step**: Change the status in Notion while the agent polls. Practice the timing.
-5. **Speed up** any slow loading to 2x in post. Keep key moments at 1x.
-6. **No audio needed** — captions work great for challenge submissions. Add them in post if you want.
+**On screen:** Terminal, Step 8 (digest generation)
+
+**Say:**
+> "Finally, a daily portfolio digest. Gemini writes it, MCP publishes it as a rich Notion page."
+
+**Cmd+Tab to Notion.**
+
+**On screen:** Open 📝 Digests → click today's digest → scroll through tables and callouts
+
+**Say:**
+> "Tables, callouts, toggles — all from one Markdown string through MCP."
+
+**Cmd+Tab back to terminal.**
+
+**On screen:** Summary box with MCP call counts
+
+**Say:**
+> "That's VaultRoom. Real blockchain data, AI risk analysis, human-in-the-loop approval — all through Notion MCP."
+
+*End recording.*
+
+---
+
+## Quick Reference — Lines to Say
+
+1. "This is VaultRoom — a DeFi risk agent that uses Notion as its control plane through MCP."
+2. "The agent reads wallet config from Notion, then fetches live on-chain data — Cardano via Blockfrost, Ethereum via ethers. Real testnet balances."
+3. "Health factor 0.98. Below 1.0. Liquidation is imminent. The engine flags it as critical."
+4. "Gemini analyzes the signal. The agent creates the event in Notion's Risk Dashboard — through MCP, not the REST API."
+5. "Here it is in Notion. Critical severity, AI analysis. Status: Escalated — waiting for human approval."
+6. "Now the agent polls Notion every 5 seconds. This is the bidirectional part."
+7. "I'll approve it now." *(click in Notion)*
+8. "It picked it up. Resolved. Comment left. Human and AI, coordinating through Notion."
+9. "Daily digest. Gemini writes it, MCP publishes it as a rich Notion page."
+10. "That's VaultRoom. Real blockchain data, AI risk analysis, human-in-the-loop — all through Notion MCP."
+
+---
+
+## If Things Go Wrong
+
+- **MCP token expired:** The demo will fail at Step 1. Re-run `npx tsx scripts/mcp-auth.ts` and try again.
+- **Approval timeout:** If you're slow switching to Notion, the poll might time out (5 min). Just edit the video — cut the wait time.
+- **On-chain fetch fails:** The demo falls back to demo data automatically. Keep going.
+- **Gemini rate limit:** AI step gets skipped. Still works — just no AI analysis text.
