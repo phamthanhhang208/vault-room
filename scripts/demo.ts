@@ -130,7 +130,7 @@ async function runDemo() {
   printBanner(networkMode);
 
   // Validate required env vars
-  const accessToken = process.env['NOTION_ACCESS_TOKEN'] ?? '';
+  const accessToken = process.env['MCP_ACCESS_TOKEN'] ?? '';
   const mcpUrl = process.env['NOTION_MCP_URL'] ?? 'https://mcp.notion.com/mcp';
   const blockfrostKey = process.env['BLOCKFROST_API_KEY'] ?? '';
   const defaultEthRpc = networkMode === 'testnet' ? 'https://rpc.sepolia.org' : 'https://eth.llamarpc.com';
@@ -138,7 +138,7 @@ async function runDemo() {
   const geminiKey = process.env['GEMINI_API_KEY'] ?? '';
 
   if (!accessToken) {
-    crit('Missing NOTION_ACCESS_TOKEN — authenticate at https://notion.so/my-integrations');
+    crit('Missing MCP_ACCESS_TOKEN — run pnpm run setup:auth to authenticate');
     process.exit(1);
   }
   if (!geminiKey) {

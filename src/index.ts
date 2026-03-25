@@ -252,7 +252,7 @@ async function main() {
   }
 
   // Connect to remote Notion MCP server via OAuth
-  const mcp = await McpClient.connect(env.NOTION_ACCESS_TOKEN, env.NOTION_MCP_URL);
+  const mcp = await McpClient.connect(env.MCP_ACCESS_TOKEN, env.NOTION_MCP_URL);
   logger.info('✅ Connected to Notion MCP server');
 
   // Require all DB IDs are configured (populated by pnpm run setup)

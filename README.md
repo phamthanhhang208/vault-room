@@ -22,33 +22,67 @@ Human operators configure thresholds, approve escalations, and receive AI-writte
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph USER["👤 Human Operator"]
+        NOTION_UI["Notion Workspace<br/>(Browser / App)"]
+    end
+
+    subgraph NOTION_MCP["☁️ Notion MCP Server<br/><i>mcp.notion.com</i>"]
+        MCP_API["MCP Protocol<br/>Streamable HTTP + OAuth 2.0 PKCE"]
+    end
+
+    subgraph AGENT["🏦 VaultRoom Agent<br/><i>Node.js + TypeScript</i>"]
+        ORCH["Orchestrator<br/><i>node-cron scheduler</i>"]
+        MCP_CLIENT["MCP Client<br/><i>@modelcontextprotocol/sdk</i>"]
+
+        subgraph NOTION_LAYER["Notion Layer"]
+            READER["NotionReader<br/><i>Config, Watchlist, Positions</i>"]
+            WRITER["NotionWriter<br/><i>Alerts, Positions, Risk Events</i>"]
+            DIGEST["DigestBuilder<br/><i>Daily AI-written reports</i>"]
+        end
+
+        subgraph RISK["Risk Engine"]
+            SIGNALS["Signal Detector<br/><i>Rule-based checks</i>"]
+            AI["Gemini 2.5 Pro<br/><i>AI risk analysis</i>"]
+        end
+
+        subgraph CHAINS["Chain Adapters"]
+            CARDANO["CardanoAdapter<br/><i>Blockfrost API</i>"]
+            ETHEREUM["EthereumAdapter<br/><i>ethers.js + RPC</i>"]
+        end
+    end
+
+    subgraph EXTERNAL["🌐 External Services"]
+        BLOCKFROST["Blockfrost API<br/><i>Cardano blockchain data</i>"]
+        ETH_RPC["Ethereum RPC<br/><i>Sepolia / Mainnet</i>"]
+        GEMINI["Google Gemini API<br/><i>AI analysis + digests</i>"]
+    end
+
+    USER -.->|"reads / edits<br/>config & approvals"| NOTION_UI
+    NOTION_UI <-->|"Notion internal"| MCP_API
+    MCP_CLIENT <-->|"MCP tools<br/>(14 tools)"| MCP_API
+
+    ORCH --> MCP_CLIENT
+    ORCH --> READER
+    ORCH --> WRITER
+    ORCH --> DIGEST
+    ORCH --> SIGNALS
+    ORCH --> CARDANO
+    ORCH --> ETHEREUM
+
+    READER --> MCP_CLIENT
+    WRITER --> MCP_CLIENT
+    DIGEST --> MCP_CLIENT
+
+    SIGNALS --> AI
+    AI --> GEMINI
+
+    CARDANO --> BLOCKFROST
+    ETHEREUM --> ETH_RPC
 ```
-On-chain Data (Blockfrost API · Ethereum RPC)
-         │
-         ▼
-┌──────────────────────────┐
-│      VaultRoom Agent      │
-│  ┌────────────────────┐  │
-│  │  Risk Engine        │  │
-│  │  (rule-based rules) │  │
-│  └────────┬───────────┘  │
-│  ┌────────▼───────────┐  │
-│  │  Gemini 2.5 Pro     │  │
-│  │  (AI enrichment)    │  │
-│  └────────┬───────────┘  │
-│  ┌────────▼───────────┐  │
-│  │  MCP Client         │──┼──── MCP Protocol ────► Notion MCP Server
-│  │  (OAuth Bearer)     │  │     (Streamable HTTP)  (hosted by Notion)
-│  └─────────────────────┘  │                              │
-└──────────────────────────┘                              ▼
-                                                 Notion Workspace
-                                                 ├─ ⚙️  Config DB       (human → agent)
-                                                 ├─ 👁️  Watchlist DB    (human → agent)
-                                                 ├─ 🚨  Risk Dashboard  (bidirectional)
-                                                 ├─ 📊  Positions DB    (agent → human)
-                                                 ├─ 📋  Alert Log DB    (agent → human)
-                                                 └─ 📝  Digest Pages    (agent → human)
-```
+
+> 📐 Detailed diagrams: [Architecture](docs/architecture.md) · [Data Flow & Sequences](docs/data-flow.md)
 
 ---
 
@@ -87,23 +121,27 @@ Page content is written as **Notion-flavored Markdown** — the MCP server conve
 
 ### Escalation Loop (the MCP showcase)
 
-```
-1. Critical signal detected
-        │
-        ▼
-2. notion-create-pages → Risk Dashboard (status: "Escalated")
-        │
-        ▼
-3. Agent polls via notion-query-database-view every 5s
-        │
-        ▼
-4. Human sees alert in Notion → changes status to "Approved"
-        │
-        ▼
-5. Agent detects → notion-update-page (status: "Resolved")
-        │
-        ▼
-6. notion-create-comment → agent acknowledges in Notion thread
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Agent as 🏦 Agent
+    participant MCP as ☁️ Notion MCP
+    participant Notion as 📓 Notion
+    participant Human as 👤 Human
+
+    Agent->>MCP: notion-create-pages<br/>(Risk Dashboard, status: "Escalated")
+    MCP->>Notion: Create escalation page
+
+    Notion-->>Human: 🔔 Notification (critical risk)
+    Human->>Notion: Review → set status: "Approved"
+
+    Note over Agent: Next poll cycle
+    Agent->>MCP: notion-search (Risk Dashboard)
+    MCP-->>Agent: Status changed to "Approved"
+
+    Agent->>Agent: Execute recommended action
+    Agent->>MCP: notion-update-page (status: "Resolved")
+    Agent->>MCP: notion-create-comment ("Action completed")
 ```
 
 ---
@@ -148,7 +186,7 @@ pnpm install
 
 # 2. Configure environment
 cp .env.example .env
-# Fill in: NOTION_ACCESS_TOKEN, BLOCKFROST_API_KEY, GEMINI_API_KEY
+# Fill in: BLOCKFROST_API_KEY, GEMINI_API_KEY, then run: pnpm run setup:auth
 # Authorize VaultRoom at https://notion.so/my-integrations to get OAuth token
 
 # 3. Create Notion workspace (6 databases via MCP)
@@ -191,7 +229,7 @@ pnpm run demo
 ```bash
 # Notion MCP (OAuth)
 NOTION_MCP_URL=https://mcp.notion.com/mcp
-NOTION_ACCESS_TOKEN=          # From https://notion.so/my-integrations
+MCP_ACCESS_TOKEN=             # Run `pnpm run setup:auth` to get this via OAuth
 NOTION_REFRESH_TOKEN=         # Optional — for automatic token renewal
 
 # Notion DB IDs (auto-populated by pnpm run setup)

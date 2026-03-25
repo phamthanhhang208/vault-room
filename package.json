@@ -7,6 +7,7 @@
     "start": "tsx src/index.ts",
     "cycle": "tsx src/index.ts --once",
     "digest": "tsx src/index.ts --digest",
+    "setup:auth": "tsx scripts/mcp-auth.ts",
     "setup": "tsx scripts/setup-notion.ts",
     "demo": "tsx scripts/demo.ts",
     "typecheck": "tsc --noEmit",

@@ -2,7 +2,7 @@
  * VaultRoom — Notion Workspace Setup
  *
  * Creates all 6 Notion DBs via the remote Notion MCP server.
- * Requires: NOTION_ACCESS_TOKEN and NOTION_PARENT_PAGE_ID in .env
+ * Requires: MCP_ACCESS_TOKEN and NOTION_PARENT_PAGE_ID in .env
  *
  * Usage:
  *   pnpm run setup
@@ -16,7 +16,7 @@ import { NotionTools } from '../src/mcp/tools.js';
 dotenv.config();
 
 const setupEnvSchema = z.object({
-  NOTION_ACCESS_TOKEN: z.string().min(1, 'Missing NOTION_ACCESS_TOKEN — authenticate at https://notion.so/my-integrations then copy your OAuth token'),
+  MCP_ACCESS_TOKEN: z.string().min(1, 'Missing MCP_ACCESS_TOKEN — run pnpm run setup:auth to authenticate'),
   NOTION_PARENT_PAGE_ID: z.string().min(1, 'Missing NOTION_PARENT_PAGE_ID — create a blank Notion page and copy its ID from the URL'),
   NOTION_MCP_URL: z.string().url().default('https://mcp.notion.com/mcp'),
 });
@@ -28,7 +28,7 @@ if (!envResult.success) {
   process.exit(1);
 }
 
-const { NOTION_ACCESS_TOKEN, NOTION_PARENT_PAGE_ID, NOTION_MCP_URL } = envResult.data;
+const { MCP_ACCESS_TOKEN, NOTION_PARENT_PAGE_ID, NOTION_MCP_URL } = envResult.data;
 
 async function main() {
   console.log('\n🏦 VaultRoom — Notion Workspace Setup\n');
@@ -36,7 +36,7 @@ async function main() {
   console.log(`MCP server: ${NOTION_MCP_URL}\n`);
 
   // Connect to Notion MCP
-  const mcp = await McpClient.connect(NOTION_ACCESS_TOKEN, NOTION_MCP_URL);
+  const mcp = await McpClient.connect(MCP_ACCESS_TOKEN, NOTION_MCP_URL);
   const tools = new NotionTools(mcp);
 
   // 1. ⚙️ Config DB

@@ -196,7 +196,7 @@ NOTION_MCP_URL=https://mcp.notion.com/mcp
 NOTION_OAUTH_CLIENT_ID=
 NOTION_OAUTH_CLIENT_SECRET=
 NOTION_OAUTH_REDIRECT_URI=
-NOTION_ACCESS_TOKEN=          # Or managed by OAuth flow
+MCP_ACCESS_TOKEN=             # Run `pnpm run setup:auth` (Notion MCP OAuth with PKCE)
 NOTION_REFRESH_TOKEN=
 
 # Notion DB IDs (populated by setup script)

@@ -4,10 +4,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const envSchema = z.object({
-  // MCP / Notion OAuth
+  // MCP / Notion OAuth (hosted MCP server uses its own OAuth tokens)
   NOTION_MCP_URL: z.string().url().default('https://mcp.notion.com/mcp'),
-  NOTION_ACCESS_TOKEN: z.string().min(1, 'Missing NOTION_ACCESS_TOKEN — run pnpm run setup:auth to authenticate'),
-  NOTION_REFRESH_TOKEN: z.string().optional(),
+  MCP_ACCESS_TOKEN: z.string().min(1, 'Missing MCP_ACCESS_TOKEN — run pnpm run setup:auth to authenticate'),
+  MCP_REFRESH_TOKEN: z.string().optional(),
+  MCP_CLIENT_ID: z.string().optional(),
+  MCP_TOKEN_ENDPOINT: z.string().url().optional(),
 
   // Network mode
   NETWORK_MODE: z.enum(['mainnet', 'testnet']).default('testnet'),
