@@ -1,47 +1,14 @@
 {
-  "lastUpdated": null,
-  "totalExposure": 1770000,
-  "avgHealth": 1.18,
-  "activeAlerts": 2,
-  "positions": [
-    {
-      "name": "Aave V3 — WETH/USDC",
-      "protocol": "Aave V3",
-      "chain": "ethereum",
-      "wallet": "0xDemoWallet001",
-      "valueUsd": 1200000,
-      "healthFactor": 1.42,
-      "riskLevel": "safe",
-      "lastUpdated": "2026-03-18T00:00:00.000Z"
-    },
-    {
-      "name": "GMX — WBTC Long",
-      "protocol": "GMX",
-      "chain": "ethereum",
-      "wallet": "0xDemoWallet001",
-      "valueUsd": 450000,
-      "healthFactor": 1.15,
-      "riskLevel": "warning",
-      "lastUpdated": "2026-03-18T00:00:00.000Z"
-    },
-    {
-      "name": "Aerodrome — USDC/ALB",
-      "protocol": "Aerodrome",
-      "chain": "ethereum",
-      "wallet": "0xDemoWallet001",
-      "valueUsd": 120000,
-      "healthFactor": 0.98,
-      "riskLevel": "danger",
-      "lastUpdated": "2026-03-18T00:00:00.000Z"
-    }
-  ],
-  "latestDigest": "Portfolio carries elevated risk concentration. The Aerodrome LP position (HF 0.98) is below the liquidation threshold and requires immediate attention. GMX leveraged long is approaching the warning threshold at 1.15. Aave V3 position remains stable. Recommend reducing Aerodrome exposure or adding collateral within the next 30 minutes to avoid forced liquidation.",
-  "criticalAlert": {
-    "protocol": "Aerodrome",
-    "healthFactor": 0.98,
-    "event": "Aerodrome health factor at 0.98 — liquidation imminent"
-  },
-  "riskAnalysis": "The Aerodrome USDC/ALB LP position has dropped below the critical liquidation threshold (HF 0.98 < 1.0). This position represents $120,000 in exposure and will be automatically liquidated if not addressed immediately.\n\nThe GMX WBTC long position (HF 1.15) is approaching the configured warning threshold of 1.20. Market volatility in BTC could push this into the danger zone within hours.\n\nAave V3 remains healthy at 1.42 and provides a buffer against portfolio-wide contagion.",
-  "mcpStatus": "disconnected",
-  "mcpCallCounts": {}
+  "lastUpdated": "2026-03-25T15:27:53.936Z",
+  "totalExposure": 0,
+  "avgHealth": 0,
+  "activeAlerts": 0,
+  "positions": [],
+  "latestDigest": "",
+  "criticalAlert": null,
+  "riskAnalysis": "",
+  "mcpStatus": "connected",
+  "mcpCallCounts": {
+    "notion-query-database-view": 6
+  }
 }

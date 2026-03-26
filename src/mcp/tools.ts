@@ -180,10 +180,17 @@ export class NotionTools {
 
   // ─── Create ─────────────────────────────────────────────────────────────────
 
+  /**
+   * Create pages in a database using the hosted MCP's flat property format.
+   * Properties should be flat key-value pairs (string | number | null).
+   * Use `data_source_id` (collection://) as parentDatabaseId.
+   * Dates must use expanded format: `"date:Field:start"`.
+   * Checkboxes must use `"__YES__"` / `"__NO__"`.
+   */
   async createPages(pages: CreatePageInput[]): Promise<string[]> {
     const result = await this.call('notion-create-pages', {
+      parent: { data_source_id: pages[0]?.parentDatabaseId, type: 'data_source_id' },
       pages: pages.map((p) => ({
-        parent: { database_id: p.parentDatabaseId },
         properties: p.properties,
         ...(p.content ? { content: p.content } : {}),
       })),
@@ -194,12 +201,12 @@ export class NotionTools {
   async createDatabase(
     parentPageId: string,
     title: string,
-    properties: Record<string, unknown>,
+    schema: string,
   ): Promise<string> {
     const result = await this.call('notion-create-database', {
-      parent: { page_id: parentPageId },
-      title: [{ text: { content: title } }],
-      properties,
+      parent: { page_id: parentPageId, type: 'page_id' },
+      title,
+      schema,
     });
     return parseCreatedDbId(result);
   }
@@ -210,11 +217,9 @@ export class NotionTools {
     content?: string,
   ): Promise<string> {
     const result = await this.call('notion-create-pages', {
+      parent: { page_id: parentPageId, type: 'page_id' },
       pages: [{
-        parent: { page_id: parentPageId },
-        properties: {
-          title: { title: [{ text: { content: title } }] },
-        },
+        properties: { title },
         ...(content ? { content } : {}),
       }],
     });
@@ -229,17 +234,27 @@ export class NotionTools {
     properties: Record<string, unknown>,
     content?: string,
   ): Promise<void> {
-    const args: Record<string, unknown> = { page_id: pageId, properties };
-    if (content) args['content'] = content;
+    const args: Record<string, unknown> = {
+      page_id: pageId,
+      command: 'update_properties',
+      properties,
+    };
     await this.call('notion-update-page', args);
+    if (content) {
+      await this.call('notion-update-page', {
+        page_id: pageId,
+        command: 'replace_content',
+        new_str: content,
+      });
+    }
   }
 
   // ─── Comments ───────────────────────────────────────────────────────────────
 
   async addComment(pageId: string, text: string): Promise<void> {
     await this.call('notion-create-comment', {
-      parent: { page_id: pageId },
-      rich_text: [{ text: { content: text.slice(0, 2000) } }],
+      page_id: pageId,
+      text: text.slice(0, 2000),
     });
   }
 }

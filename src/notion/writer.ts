@@ -3,6 +3,18 @@ import type { RiskSignal } from '../risk/signals.js';
 import type { Position, AlertEntry } from '../types.js';
 import { logger } from '../utils/logger.js';
 
+/**
+ * NotionWriter — writes to Notion databases via hosted MCP.
+ * 
+ * Uses flat SQL-style property values (not nested Notion API format):
+ * - Text/Title: plain string
+ * - Select: option name string
+ * - Number: number value
+ * - Date: expanded `"date:Field:start"` key
+ * - Checkbox: `"__YES__"` / `"__NO__"`
+ * - Multi-select: JSON array string `'["a","b"]'`
+ */
+
 const SEVERITY_LABELS: Record<string, string> = {
   low: '🟢 Low',
   medium: '🟡 Medium',
@@ -40,14 +52,14 @@ export class NotionWriter {
     const [pageId] = await this.tools.createPages([{
       parentDatabaseId: this.dbIds.riskDashboard,
       properties: {
-        event: { title: [{ text: { content: signal.event } }] },
-        chain: { select: { name: capitalize(signal.chain) } },
-        protocol: { rich_text: [{ text: { content: signal.protocol } }] },
-        severity: { select: { name: SEVERITY_LABELS[signal.severity] ?? signal.severity } },
-        detected_at: { date: { start: signal.detectedAt } },
-        ai_analysis: { rich_text: [{ text: { content: (signal.aiAnalysis ?? '').slice(0, 2000) } }] },
-        recommended_action: { rich_text: [{ text: { content: (signal.recommendedAction ?? '').slice(0, 2000) } }] },
-        status: { select: { name: status } },
+        "Event": signal.event,
+        "Chain": capitalize(signal.chain),
+        "Protocol": signal.protocol,
+        "Severity": SEVERITY_LABELS[signal.severity] ?? signal.severity,
+        "date:Detected At:start": signal.detectedAt,
+        "AI Analysis": (signal.aiAnalysis ?? '').slice(0, 2000),
+        "Recommended Action": (signal.recommendedAction ?? '').slice(0, 2000),
+        "Status": status,
       },
       content,
     }]);
@@ -58,8 +70,8 @@ export class NotionWriter {
   }
 
   async writePosition(position: Position): Promise<string> {
-    // Upsert: search for existing position by title (wallet+protocol+chain combo)
-    const searchQuery = `${position.protocol} ${position.wallet} ${position.chain}`;
+    // Upsert: search for existing position by title
+    const searchQuery = `${position.protocol} ${position.chain}`;
     const existing = await this.tools.search(searchQuery);
     const existingPage = existing.find(
       (r) =>
@@ -67,15 +79,15 @@ export class NotionWriter {
         r.title.toLowerCase().includes(position.protocol.toLowerCase()),
     );
 
-    const properties = {
-      position: { title: [{ text: { content: position.name } }] },
-      chain: { select: { name: capitalize(position.chain) } },
-      protocol: { rich_text: [{ text: { content: position.protocol } }] },
-      wallet: { rich_text: [{ text: { content: position.wallet } }] },
-      value_usd: { number: position.valueUsd },
-      health_factor: { number: position.healthFactor },
-      risk_level: { select: { name: RISK_LEVEL_LABELS[position.riskLevel] ?? position.riskLevel } },
-      last_updated: { date: { start: position.lastUpdated } },
+    const properties: Record<string, unknown> = {
+      "Position": position.name,
+      "Chain": capitalize(position.chain),
+      "Protocol": position.protocol,
+      "Wallet": position.wallet,
+      "Value USD": position.valueUsd,
+      "Health Factor": position.healthFactor,
+      "Risk Level": RISK_LEVEL_LABELS[position.riskLevel] ?? position.riskLevel,
+      "date:Last Updated:start": position.lastUpdated,
     };
 
     let pageId: string;
@@ -98,11 +110,11 @@ export class NotionWriter {
     const [pageId] = await this.tools.createPages([{
       parentDatabaseId: this.dbIds.alertLog,
       properties: {
-        alert: { title: [{ text: { content: alert.title } }] },
-        chain: { select: { name: capitalize(alert.chain) } },
-        severity: { select: { name: capitalize(alert.severity) } },
-        timestamp: { date: { start: new Date().toISOString() } },
-        details: { rich_text: [{ text: { content: alert.details.slice(0, 2000) } }] },
+        "Alert": alert.title,
+        "Chain": capitalize(alert.chain),
+        "Severity": capitalize(alert.severity),
+        "date:Timestamp:start": new Date().toISOString(),
+        "Details": alert.details.slice(0, 2000),
       },
     }]);
 
