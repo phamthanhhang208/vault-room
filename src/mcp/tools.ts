@@ -162,8 +162,15 @@ export class NotionTools {
   }
 
   async fetchPage(pageIdOrUrl: string): Promise<string> {
-    const result = await this.call('notion-fetch', { url: pageIdOrUrl });
-    return McpClient.extractText(result);
+    const result = await this.call('notion-fetch', { id: pageIdOrUrl });
+    const raw = McpClient.extractText(result);
+    // The hosted MCP returns JSON with a `text` field containing the actual page content
+    try {
+      const parsed = JSON.parse(raw);
+      return typeof parsed.text === 'string' ? parsed.text : raw;
+    } catch {
+      return raw;
+    }
   }
 
   // ─── Query ──────────────────────────────────────────────────────────────────
