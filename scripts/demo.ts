@@ -116,8 +116,8 @@ function printSummary(stats: {
 
 const DEMO_CONFIG: MonitorConfig = {
   pageId: 'demo',
-  chain: 'ethereum',
-  walletAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', // vitalik.eth (public demo wallet)
+  chain: 'cardano',
+  walletAddress: 'addr_test1qpxj5cnv830gzqwdwtn59fdt5ll0k0lja0qyamqgmqhn4jnkj5ng7wfhvpzmel4pvhwp0xj5d9jjm3pt9y7x5sncw6ysnmjqdt',
   healthThreshold: 1.2,
   tvlDropPct: 15,
   pollingMinutes: 5,
@@ -216,7 +216,7 @@ async function runDemo() {
   step(3, 'Fetching live on-chain data...');
 
   const adapters = new Map<string, ChainAdapter>([
-    ['cardano', new CardanoAdapter(blockfrostKey, 'mainnet')],
+    ['cardano', new CardanoAdapter(blockfrostKey, networkMode === 'testnet' ? 'preprod' : 'mainnet')],
     ['ethereum', new EthereumAdapter(ethRpc)],
   ]);
 
