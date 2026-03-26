@@ -428,7 +428,7 @@ async function runDemo() {
 
     while (!approved && polls < maxPolls) {
       mcpLog('notion-query-database-view', `Polling Risk Dashboard for "Approved" status... (${polls * 5}s)`);
-      const approvals = await reader.pollEscalations();
+      const approvals = await reader.pollEscalations('Aerodrome');
 
       if (approvals.length > 0) {
         approved = true;

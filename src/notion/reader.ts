@@ -288,9 +288,13 @@ export class NotionReader {
     return signals;
   }
 
-  async pollEscalations(): Promise<EscalationUpdate[]> {
-    // Search for escalated events
-    const results = await this.tools.search('Escalated');
+  /**
+   * Poll for escalation approvals by searching for risk events and checking status.
+   * Optionally pass a search query to narrow results (e.g., the event title).
+   */
+  async pollEscalations(searchQuery = 'health factor'): Promise<EscalationUpdate[]> {
+    // Search broadly — we check status on each page individually
+    const results = await this.tools.search(searchQuery);
     
     const updates: EscalationUpdate[] = [];
     for (const result of results) {
